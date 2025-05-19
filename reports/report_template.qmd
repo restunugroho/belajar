@@ -1,0 +1,79 @@
+
+---
+title: "Hasil Eksperimen ML"
+format:
+  html:
+    toc: true
+    code-fold: true
+    theme: cosmo
+    number-sections: true
+    df-print: paged
+---
+
+# Ringkasan Eksperimen ML
+
+:::: {.panel-tabset}
+
+### Overview
+
+- Tugas ML: `r readLines("reports/config.txt")[1]`
+- Metode Split: `r readLines("reports/config.txt")[2]`
+- Ukuran Test Set: `r readLines("reports/config.txt")[3]`
+- Total Baris: `r readLines("reports/config.txt")[4]`
+- Train Rows: `r readLines("reports/config.txt")[5]`
+- Test Rows: `r readLines("reports/config.txt")[6]`
+- Missing Value Handling: `r readLines("reports/config.txt")[7]`
+
+---
+
+### Data Summary
+
+```{r}
+library(readr)
+library(dplyr)
+X <- read_csv("reports/X.csv")
+summary(X)
+```
+
+---
+
+### Missing Value Info
+
+```{r}
+colSums(is.na(X))
+```
+
+---
+
+### Train-Test Split
+
+```{r}
+head(X, 10)
+```
+
+---
+
+### Experiment Results
+
+```{r}
+results <- read_csv("reports/experiment_results.csv")
+knitr::kable(results, digits = 4)
+```
+
+---
+
+### Best Model Details
+
+```{r}
+best <- results[which.max(results$test_score),]
+knitr::kable(best)
+```
+
+---
+
+### SHAP / Interpretability (opsional)
+
+Tambahkan di sini nanti hasil SHAP jika sudah kamu generate.
+
+::::
+

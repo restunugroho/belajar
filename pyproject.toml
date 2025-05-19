@@ -1,0 +1,27 @@
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "belajar"
+version = "0.1.0"
+description = "Automated ML experiments with clean reporting and interpretability"
+authors = [
+  { name = "Your Name", email = "you@example.com" }
+]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+  "pandas",
+  "numpy",
+  "scikit-learn",
+  "matplotlib",
+  "shap",
+  "quarto-cli @ https://github.com/quarto-dev/quarto-cli/releases/download/v1.4.550/quarto-1.4.550-linux-amd64.tar.gz"
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
