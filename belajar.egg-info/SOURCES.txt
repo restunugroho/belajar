@@ -11,5 +11,7 @@ belajar/utils.py
 belajar.egg-info/PKG-INFO
 belajar.egg-info/SOURCES.txt
 belajar.egg-info/dependency_links.txt
+belajar.egg-info/requires.txt
 belajar.egg-info/top_level.txt
 reports/report_template.qmd
+tests/test_core.py

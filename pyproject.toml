@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "belajar"
-version = "0.1.0"
+version = "0.1.1"
 description = "Automated ML experiments with clean reporting and interpretability"
 authors = [
   { name = "Your Name", email = "you@example.com" }
@@ -18,7 +18,9 @@ dependencies = [
   "scikit-learn",
   "matplotlib",
   "shap",
-  "quarto-cli @ https://github.com/quarto-dev/quarto-cli/releases/download/v1.4.550/quarto-1.4.550-linux-amd64.tar.gz"
+  "xgboost",
+  "catboost",
+  "lightgbm"
 ]
 classifiers = [
   "Programming Language :: Python :: 3",

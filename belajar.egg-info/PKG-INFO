@@ -1,10 +1,22 @@
 Metadata-Version: 2.1
 Name: belajar
-Version: 0.1.0
-Summary: UNKNOWN
-Home-page: UNKNOWN
-License: UNKNOWN
-Platform: UNKNOWN
+Version: 0.1.1
+Summary: Automated ML experiments with clean reporting and interpretability
+Author-email: Your Name <you@example.com>
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: pandas
+Requires-Dist: numpy
+Requires-Dist: scikit-learn
+Requires-Dist: matplotlib
+Requires-Dist: shap
+Requires-Dist: xgboost
+Requires-Dist: catboost
+Requires-Dist: lightgbm
 
-UNKNOWN
+# belajar
 
+A Python library for running ML experiments easily, and generate report fast.
