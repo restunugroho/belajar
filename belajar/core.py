@@ -1,180 +1,127 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import shap
 import os
-import shutil
-import datetime
-import uuid
-
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import mean_squared_error, r2_score, accuracy_score, f1_score
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score, f1_score,
-    mean_squared_error, mean_absolute_error, r2_score
-)
+from datetime import datetime
+from tqdm import tqdm
 
+from xgboost import XGBClassifier, XGBRegressor
+from catboost import CatBoostClassifier, CatBoostRegressor
+from lightgbm import LGBMClassifier, LGBMRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from xgboost import XGBRegressor, XGBClassifier
-from catboost import CatBoostRegressor, CatBoostClassifier
-from lightgbm import LGBMRegressor, LGBMClassifier
-
-import subprocess
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 def run_experiment(
     data: pd.DataFrame,
-    target_column: str,
+    target: str,
     task: str = "regression",
-    split_method: str = "date",  # or "random"
-    date_column: str = None,
+    split_method: str = "date",
+    split_column: str = None,
     test_size: float = 0.2,
+    date_threshold: str = None,
     output_dir: str = "output"
 ):
-    assert task in ["regression", "classification"], "Task must be 'regression' or 'classification'"
-    assert split_method in ["random", "date"], "split_method must be 'random' or 'date'"
-    assert target_column in data.columns, f"Target column '{target_column}' not found in data"
-
-    if split_method == "date":
-        assert date_column in data.columns, "date_column is required for split_method='date'"
-
-    # Check if Quarto CLI is installed
-    if shutil.which("quarto") is None:
-        raise EnvironmentError("Quarto CLI is not installed. Please install it from https://quarto.org")
+    assert task in ["regression", "classification"], "Invalid task"
+    assert split_method in ["random", "date"], "Invalid split method"
+    assert target in data.columns, "Target not found in data"
 
     os.makedirs(output_dir, exist_ok=True)
-    exp_id = str(uuid.uuid4())[:8]
 
     df = data.copy()
 
-    # Remove rows with missing values
-    null_rows = df.isnull().sum().sum()
+    # Drop rows with missing values
     df = df.dropna()
-
-    removed_rows = int(null_rows)
-
-    # Drop datetime features
-    df = df.copy()
-    for col in df.select_dtypes(include=["datetime64", "datetime64[ns]"]).columns:
-        if col != date_column:
-            df = df.drop(columns=[col])
+    dropped = data.shape[0] - df.shape[0]
 
     # Encode categorical features
-    le_dict = {}
-    for col in df.select_dtypes(include=["object", "category"]).columns:
-        if col != target_column:
-            le = LabelEncoder()
-            df[col] = le.fit_transform(df[col])
-            le_dict[col] = le
+    for col in df.select_dtypes(include="object").columns:
+        if col != target:
+            df[col] = LabelEncoder().fit_transform(df[col])
 
-    # Train-test split
-    if split_method == "date":
-        df = df.sort_values(by=date_column)
+    X = df.drop(columns=[target])
+    y = df[target]
+
+    if split_method == "random":
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
+    elif split_method == "date":
+        assert split_column is not None, "Date column must be provided for date-based split"
+        df[split_column] = pd.to_datetime(df[split_column])
+        df = df.sort_values(by=split_column)
         split_idx = int((1 - test_size) * len(df))
-        train_df = df.iloc[:split_idx]
-        test_df = df.iloc[split_idx:]
-    else:
-        train_df, test_df = train_test_split(df, test_size=test_size, random_state=42)
+        train_data = df.iloc[:split_idx]
+        test_data = df.iloc[split_idx:]
+        X_train = train_data.drop(columns=[target])
+        y_train = train_data[target]
+        X_test = test_data.drop(columns=[target])
+        y_test = test_data[target]
 
-    X_train = train_df.drop(columns=[target_column])
-    y_train = train_df[target_column]
-    X_test = test_df.drop(columns=[target_column])
-    y_test = test_df[target_column]
-
-    models = []
-
-    if task == "regression":
-        models = [
-            ("LinearRegression", LinearRegression()),
-            ("RandomForestRegressor", RandomForestRegressor(n_estimators=100)),
-            ("XGBRegressor", XGBRegressor(n_estimators=100, verbosity=0)),
-            ("CatBoostRegressor", CatBoostRegressor(verbose=0)),
-            ("LGBMRegressor", LGBMRegressor())
-        ]
-    else:
-        models = [
-            ("LogisticRegression", LogisticRegression(max_iter=1000)),
-            ("RandomForestClassifier", RandomForestClassifier(n_estimators=100)),
-            ("XGBClassifier", XGBClassifier(n_estimators=100, verbosity=0)),
-            ("CatBoostClassifier", CatBoostClassifier(verbose=0)),
-            ("LGBMClassifier", LGBMClassifier())
-        ]
+    model_dict = {
+        "linear": LinearRegression() if task == "regression" else LogisticRegression(max_iter=1000),
+        "rf": RandomForestRegressor() if task == "regression" else RandomForestClassifier(),
+        "xgb": XGBRegressor() if task == "regression" else XGBClassifier(),
+        "cat": CatBoostRegressor(verbose=0) if task == "regression" else CatBoostClassifier(verbose=0),
+        "lgbm": LGBMRegressor() if task == "regression" else LGBMClassifier()
+    }
 
     results = []
 
-    for name, model in models:
+    for name, model in tqdm(model_dict.items(), desc="Training models"):
         model.fit(X_train, y_train)
-        y_train_pred = model.predict(X_train)
-        y_test_pred = model.predict(X_test)
+        y_pred_train = model.predict(X_train)
+        y_pred_test = model.predict(X_test)
 
         if task == "regression":
-            metrics = {
-                "rmse_train": mean_squared_error(y_train, y_train_pred),
-                "mae_train": mean_absolute_error(y_train, y_train_pred),
-                "r2_train": r2_score(y_train, y_train_pred),
-                "rmse_test": mean_squared_error(y_test, y_test_pred),
-                "mae_test": mean_absolute_error(y_test, y_test_pred),
-                "r2_test": r2_score(y_test, y_test_pred),
+            train_score = {
+                "rmse": mean_squared_error(y_train, y_pred_train, squared=False),
+                "r2": r2_score(y_train, y_pred_train)
+            }
+            test_score = {
+                "rmse": mean_squared_error(y_test, y_pred_test, squared=False),
+                "r2": r2_score(y_test, y_pred_test)
             }
         else:
-            metrics = {
-                "accuracy_train": accuracy_score(y_train, y_train_pred),
-                "precision_train": precision_score(y_train, y_train_pred, average="macro"),
-                "recall_train": recall_score(y_train, y_train_pred, average="macro"),
-                "f1_train": f1_score(y_train, y_train_pred, average="macro"),
-                "accuracy_test": accuracy_score(y_test, y_test_pred),
-                "precision_test": precision_score(y_test, y_test_pred, average="macro"),
-                "recall_test": recall_score(y_test, y_test_pred, average="macro"),
-                "f1_test": f1_score(y_test, y_test_pred, average="macro"),
+            train_score = {
+                "accuracy": accuracy_score(y_train, y_pred_train),
+                "f1": f1_score(y_train, y_pred_train, average="weighted")
+            }
+            test_score = {
+                "accuracy": accuracy_score(y_test, y_pred_test),
+                "f1": f1_score(y_test, y_pred_test, average="weighted")
             }
 
         results.append({
             "model": name,
-            "params": model.get_params(),
-            **metrics
+            "train_metrics": train_score,
+            "test_metrics": test_score
         })
 
-    report_path = os.path.join(output_dir, f"report_{exp_id}.qmd")
-    html_output = os.path.join(output_dir, f"report_{exp_id}.html")
+        # SHAP Analysis
+        try:
+            explainer = shap.Explainer(model, X_train)
+            shap_values = explainer(X_train)
+            plt.figure()
+            shap.summary_plot(shap_values, X_train, show=False)
+            plt.tight_layout()
+            plt.savefig(f"{output_dir}/shap_{name}.png")
+            plt.close()
+        except Exception as e:
+            print(f"SHAP failed for {name}: {e}")
 
-    generate_quarto_report(
-        report_path,
-        results,
-        task=task,
-        split_method=split_method,
-        test_size=test_size,
-        removed_rows=removed_rows
-    )
-
-    subprocess.run(["quarto", "render", report_path, "--output", html_output])
-    print(f"✅ Report generated: {html_output}")
-
-def generate_quarto_report(path, results, task, split_method, test_size, removed_rows):
-    with open(path, "w") as f:
-                f.write(f"""---
-        title: "Hasil Eksperimen ML"
-        format: html
-        editor: visual
-        ---
-
-        # 📊 Ringkasan Eksperimen
-
-        - **Jenis Task**: {task}
-        - **Metode Split**: {split_method}
-        - **Proporsi Data Test**: {test_size}
-        - **Baris yang Dihapus karena Null**: {removed_rows}
-
-        # 🔍 Hasil Model
-
-        """)
-                for res in results:
-                    f.write(f"## Model: {res['model']}\n")
-                    f.write("### 🔧 Parameter\n")
-                    f.write("```\n")
-                    f.write(str(res["params"]))
-                    f.write("\n```\n")
-                    f.write("### 📈 Metrics\n")
-                    f.write("| Metric | Value |\n|--------|--------|\n")
-                    for k, v in res.items():
-                        if k not in ["model", "params"]:
-                            f.write(f"| {k} | {v:.4f} |\n")
-                    f.write("\n---\n")
-
+    report_path = os.path.join(output_dir, "report.qmd")
+    with open(report_path, "w") as f:
+        f.write("# Hasil Eksperimen\n\n")
+        f.write(f"Dropped missing rows: {dropped}\n\n")
+        f.write(f"Train/Test split method: {split_method}, test size: {test_size}\n\n")
+        for res in results:
+            f.write(f"## Model: {res['model']}\n")
+            f.write("### Train Metrics:\n")
+            for k, v in res["train_metrics"].items():
+                f.write(f"- {k}: {v:.4f}\n")
+            f.write("### Test Metrics:\n")
+            for k, v in res["test_metrics"].items():
+                f.write(f"- {k}: {v:.4f}\n")
+            f.write(f"![SHAP Plot](shap_{res['model']}.png)\n\n")

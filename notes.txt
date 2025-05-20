@@ -1,0 +1,79 @@
+notes:
+
+- buat virtual environment 
+python3 -m venv env
+source env/bin/activate  # Mac/Linux
+
+- install quarto
+wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.4.550/quarto-1.4.550-linux-amd64.deb
+sudo dpkg -i quarto-1.4.550-linux-amd64.deb
+
+
+- build wheel
+python setup.py sdist bdist_wheel
+muncul contoh outputnya:
+dist/
+├── belajar-0.1.1.tar.gz
+├── belajar-0.1.1-py3-none-any.whl
+
+- install wheel local
+pip install dist/belajar-0.1.1-py3-none-any.whl
+jika sdh ada instalan sebelumnya dgn versi sama, tambahkan : --force-reinstall
+
+- upload wheel ke pypi
+install tools : pip install setuptools wheel twine
+build packages : python setup.py sdist bdist_wheel
+akan muncul outpute file :
+    dist/
+    ├── belajar-0.1.0.tar.gz
+    ├── belajar-0.1.0-py3-none-any.whl
+upload ke pypi : twine upload dist/*
+alternatif upload ke test pypi dulu : twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+instalasi dari pypi (user menggunakan) : pip install belajar
+
+## Buat akun Pypi
+Buka https://pypi.org/account/register/
+Isi:
+Username (akan jadi nama publik kamu di PyPI)
+Email aktif (wajib verifikasi)
+Password kuat (minimal 10 karakter, lebih aman pakai password manager)
+Klik Register.
+Cek email kamu dan klik link verifikasi untuk mengaktifkan akun.
+## Buat API Token
+Sebaiknya gunakan API token saat upload package, bukan password PyPI langsung.
+Cara buat API token:
+Login ke akun PyPI: https://pypi.org/manage/account/
+Scroll ke bawah ke bagian "API tokens"
+Klik Add API Token
+Isi:
+Name: misalnya belajar-publisher
+Scope: pilih Entire account atau hanya belajar jika sudah ada
+Klik Add Token
+Salin token yang muncul. Catat, karena tidak bisa dilihat lagi.
+
+## Cara pakai Tokennya
+Buat file ~/.pypirc
+isinya:
+[distutils]
+index-servers =
+  pypi
+
+[pypi]
+  username = __token__
+  password = pypi-AgEI...1234  # token dari langkah sebelumnya
+
+
+Lalu upload package:
+twine upload dist/*
+
+Kalau tidak pakai file .pypirc, cukup:
+twine upload -u __token__ -p pypi-AgEI...1234 dist/*
+
+
+- inisiasi git
+git init
+git remote add origin https://github.com/username/belajar.git
+git add .
+git commit -m "Initial commit: upload belajar v0.1.1"
+git branch -M main
+git push -u origin main

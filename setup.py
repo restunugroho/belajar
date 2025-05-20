@@ -1,9 +1,21 @@
-
 from setuptools import setup, find_packages
 
 setup(
     name="belajar",
     version="0.1.1",
     packages=find_packages(),
+    install_requires=[
+        "pandas>=1.3,<2.1",
+        "numpy>=1.21,<2.0",
+        "scikit-learn>=1.1,<1.4",
+        "matplotlib>=3.4,<3.9",
+        "shap>=0.41,<0.45",
+        "xgboost>=1.6,<2.0",
+        "catboost>=1.1,<1.4",
+        "lightgbm>=3.3,<4.1",
+        "tqdm>=4.64",
+        "pyarrow>=14.0,<15.0",
+        "fastparquet>=2023.4,<2024.0"
+    ],
     include_package_data=True,
 )
