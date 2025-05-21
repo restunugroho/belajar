@@ -10,6 +10,7 @@ sudo dpkg -i quarto-1.4.550-linux-amd64.deb
 
 
 - build wheel
+kalo dari awal : pip install setuptools
 python setup.py sdist bdist_wheel
 muncul contoh outputnya:
 dist/
@@ -19,6 +20,9 @@ dist/
 - install wheel local
 pip install dist/belajar-0.1.1-py3-none-any.whl
 jika sdh ada instalan sebelumnya dgn versi sama, tambahkan : --force-reinstall
+
+- run tes file
+python3 tests.py
 
 - upload wheel ke pypi
 install tools : pip install setuptools wheel twine
@@ -77,3 +81,32 @@ git add .
 git commit -m "Initial commit: upload belajar v0.1.1"
 git branch -M main
 git push -u origin main
+
+
+- ubah versi
+di setup.py
+  version="0.1.1",  # ✅ versi baru
+di belajar/__init__.py
+  __version__ = "0.1.1"
+di pyproject.toml
+  [project]
+  version = "0.1.1"
+CHANGELOG.md (optional)
+  # Changelog
+  ## [0.1.1] - 2025-05-19
+    ### Changed
+    - Tambahkan validasi Quarto CLI.
+    - Perbaikan split data berdasarkan tanggal.
+    - Tambah logging laporan preprocessing ke Quarto.
+    - Update model dan metrik evaluasi.
+  ## [0.1.0] - Initial release
+
+
+- panduan install quarto di README
+## 📦 Dependencies
+Library ini membutuhkan [Quarto CLI](https://quarto.org/docs/get-started/) untuk menghasilkan laporan `.qmd`.
+### 🔧 Cara Install Quarto
+#### Di Linux:
+```bash
+wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.4.550/quarto-1.4.550-linux-amd64.deb
+sudo dpkg -i quarto-1.4.550-linux-amd64.deb
