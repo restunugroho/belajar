@@ -13,7 +13,7 @@ features = ['request_time','gap_eta_traffic','eta_with_traffic','eta_without_tra
 
 run_experiment(
     data=df[features],
-    target_column="argo_drop_waiting",         # nama kolom target
+    target="argo_drop_waiting",         # nama kolom target
     task="regression",             # atau "classification"
     split_method="random",           # atau "random"
 #    date_column="request_time",         # kolom datetime untuk split
